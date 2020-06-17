@@ -1,0 +1,105 @@
+{
+	"name": "SalesOrderHeader_100",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "BLOB_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BLOB"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "SalesHeader_1000",
+				"container": "datalake"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"SalesOrderID": {
+					"type": "string"
+				},
+				"RevisionNumber": {
+					"type": "string"
+				},
+				"OrderDate": {
+					"type": "string"
+				},
+				"DueDate": {
+					"type": "string"
+				},
+				"ShipDate": {
+					"type": "string"
+				},
+				"Status": {
+					"type": "string"
+				},
+				"OnlineOrderFlag": {
+					"type": "boolean"
+				},
+				"SalesOrderNumber": {
+					"type": "string"
+				},
+				"PurchaseOrderNumber": {
+					"type": "string"
+				},
+				"AccountNumber": {
+					"type": "string"
+				},
+				"CustomerID": {
+					"type": "string"
+				},
+				"SalesPersonID": {
+					"type": "string"
+				},
+				"TerritoryID": {
+					"type": "string"
+				},
+				"BillToAddressID": {
+					"type": "string"
+				},
+				"ShipToAddressID": {
+					"type": "string"
+				},
+				"ShipMethodID": {
+					"type": "string"
+				},
+				"CreditCardID": {
+					"type": "string"
+				},
+				"CreditCardApprovalCode": {
+					"type": "string"
+				},
+				"SubTotal": {
+					"type": "number"
+				},
+				"TaxAmt": {
+					"type": "number"
+				},
+				"Freight": {
+					"type": "number"
+				},
+				"TotalDue": {
+					"type": "number"
+				},
+				"rowguid": {
+					"type": "string"
+				},
+				"Read_Flag": {
+					"type": "string"
+				},
+				"Last_Modified_Date": {
+					"type": "string"
+				},
+				"CurrencyRateID": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

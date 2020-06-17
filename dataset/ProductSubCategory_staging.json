@@ -1,0 +1,41 @@
+{
+	"name": "ProductSubCategory_staging",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_AdventureWorks_Staging",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "ProductSubcategoryID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ProductCategoryID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Name",
+				"type": "nchar"
+			},
+			{
+				"name": "rowguid",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "ProductSubcategory"
+		}
+	}
+}

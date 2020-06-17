@@ -1,0 +1,22 @@
+{
+	"name": "Address_All",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "BLOB_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BLOB"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Address_json.json",
+				"container": "datalake"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

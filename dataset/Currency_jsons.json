@@ -1,0 +1,42 @@
+{
+	"name": "Currency_jsons",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "BLOB_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BLOB"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Sales.Currency.json",
+				"container": "datalake"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"CurrencyCode": {
+					"type": "string"
+				},
+				"Name": {
+					"type": "string"
+				},
+				"ModifiedDate": {
+					"type": "string"
+				},
+				"Read_Flag": {
+					"type": "null"
+				},
+				"Last_Modified_Date": {
+					"type": "null"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

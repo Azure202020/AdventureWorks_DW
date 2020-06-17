@@ -1,0 +1,39 @@
+{
+	"name": "ProductModelDescription_json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "BLOB_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BLOB"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Production.ProductModelProductDescriptionCulture.json",
+				"container": "datalake"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"ProductModelID": {
+					"type": "integer"
+				},
+				"ProductDescriptionID": {
+					"type": "integer"
+				},
+				"CultureID": {
+					"type": "string"
+				},
+				"ModifiedDate": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

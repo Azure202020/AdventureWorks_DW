@@ -1,0 +1,42 @@
+{
+	"name": "ProductSubCategory_Json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "BLOB_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BLOB"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Production.ProductSubcategory.json",
+				"container": "datalake"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"ProductSubcategoryID": {
+					"type": "integer"
+				},
+				"ProductCategoryID": {
+					"type": "integer"
+				},
+				"Name": {
+					"type": "string"
+				},
+				"rowguid": {
+					"type": "string"
+				},
+				"ModifiedDate": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
