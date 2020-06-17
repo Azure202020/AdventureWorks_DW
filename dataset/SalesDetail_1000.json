@@ -1,0 +1,66 @@
+{
+	"name": "SalesDetail_1000",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "BLOB_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "BLOB"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "SalesDetail_1000",
+				"container": "datalake"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"SalesOrderID": {
+					"type": "integer"
+				},
+				"SalesOrderDetailID": {
+					"type": "integer"
+				},
+				"CarrierTrackingNumber": {
+					"type": "string"
+				},
+				"OrderQty": {
+					"type": "integer"
+				},
+				"ProductID": {
+					"type": "integer"
+				},
+				"SpecialOfferID": {
+					"type": "integer"
+				},
+				"UnitPrice": {
+					"type": "number"
+				},
+				"UnitPriceDiscount": {
+					"type": "number"
+				},
+				"LineTotal": {
+					"type": "number"
+				},
+				"rowguid": {
+					"type": "string"
+				},
+				"ModifiedDate": {
+					"type": "string"
+				},
+				"Last_Modified_Date": {
+					"type": "string"
+				},
+				"Read_Flag": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
