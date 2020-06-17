@@ -6,7 +6,7 @@
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
-			"name": "OLTP"
+			"name": "BLOB"
 		},
 		"annotations": [],
 		"type": "Json",
