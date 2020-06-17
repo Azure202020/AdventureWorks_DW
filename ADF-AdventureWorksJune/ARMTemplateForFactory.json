@@ -1,0 +1,6114 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "ADF-AdventureWorksJune"
+		},
+		"BLOB_Storage_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'BLOB_Storage'"
+		},
+		"ls_AdventureWorks_Azure_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_AdventureWorks_Azure'"
+		},
+		"ls_AdventureWorks_Staging_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_AdventureWorks_Staging'"
+		},
+		"ls_Datawarehouse_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_Datawarehouse'"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/CopyTables')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Append variable1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@variables('TableNames')",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copy data1",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Set variable2",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "AzureSqlSource",
+											"queryTimeout": "02:00:00"
+										},
+										"sink": {
+											"type": "JsonSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "JsonWriteSettings",
+												"quoteAllText": true
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_AdvantureSQLTable",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": {
+													"value": "@variables('Table')",
+													"type": "Expression"
+												},
+												"schemaName": {
+													"value": "@variables('Schema')",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_OutputFolderJson",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@concat(variables('Table'),'.json')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Schema",
+										"value": {
+											"value": "@split(item(),'.')[0]",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set variable2",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Table",
+										"value": {
+											"value": "@split(item(),'.')[1]",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Append variable1",
+						"type": "AppendVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "TableNames",
+							"value": "Sales.Customer"
+						}
+					}
+				],
+				"variables": {
+					"TableNames": {
+						"type": "Array",
+						"defaultValue": [
+							"Production.Product",
+							"Sales.Currency"
+						]
+					},
+					"Schema": {
+						"type": "String"
+					},
+					"Table": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_AdvantureSQLTable')]",
+				"[concat(variables('factoryId'), '/datasets/ds_OutputFolderJson')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DemoPipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@variables('FileNames')",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Validation1",
+									"type": "Validation",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_inputFolder",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@item()",
+													"type": "Expression"
+												}
+											}
+										},
+										"timeout": "0.00:00:30",
+										"sleep": 10
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "ForEach2",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "ForEach1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@variables('FileNames')",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copy data1",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobStorageReadSettings",
+												"recursive": true
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobStorageWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_inputFolder",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@item()",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_Output",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"parameters": {
+					"abcd": {
+						"type": "string"
+					},
+					"xyz": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"FileNames": {
+						"type": "Array",
+						"defaultValue": [
+							"employees.csv",
+							"department.csv"
+						]
+					},
+					"DataFactoryName": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_inputFolder')]",
+				"[concat(variables('factoryId'), '/datasets/ds_Output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PPL_WEB')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Web1",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "http://dummy.restapiexample.com/api/v1/employees",
+							"method": "GET",
+							"headers": {},
+							"body": ""
+						}
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_Lookup')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_InputEmp",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup1').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Append variable1",
+									"type": "AppendVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "EmpIDs",
+										"value": {
+											"value": "@item().empid",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"variables": {
+					"EmpIDs": {
+						"type": "Array"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_InputEmp')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ppl_CopyTables')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Copy dimensions such as product,customers etc",
+				"activities": [
+					{
+						"name": "Copy Customer",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_OLTP_Currency",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "Customer_oltp",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customer_All",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Prod Category",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy Customer",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductCategory",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductCategory_Json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy ProductModel",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Prod Category",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductModel",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductModel_json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy Address",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT  [AddressID]\n      ,[AddressLine1]\n      ,[AddressLine2]\n      ,[City]\n      ,[StateProvinceID]\n      ,[PostalCode]\n      ,NULL as [SpatialLocation]\n      ,[rowguid]\n      ,[ModifiedDate]\n  FROM [Person].[Address]",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "Address_oltp",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Address_All2",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy OLTP Product",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy Address",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "Product",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Product_json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy_OLTP_Currency",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy OLTP Product",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "Currency",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Currency_jsons",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy ProductSubCategory",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy ProductModel",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductSubcategory_oltp",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductSubCategory_Json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy ProductDescription",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy ProductSubCategory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductDescription_oltp",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductDescription_json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy ProductModelDescriptionCulture",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy ProductDescription",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings",
+									"quoteAllText": true
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductModelDescription_oltp",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductModelDescription_json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Customer_oltp')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_All')]",
+				"[concat(variables('factoryId'), '/datasets/ProductCategory')]",
+				"[concat(variables('factoryId'), '/datasets/ProductCategory_Json')]",
+				"[concat(variables('factoryId'), '/datasets/ProductModel')]",
+				"[concat(variables('factoryId'), '/datasets/ProductModel_json')]",
+				"[concat(variables('factoryId'), '/datasets/Address_oltp')]",
+				"[concat(variables('factoryId'), '/datasets/Address_All2')]",
+				"[concat(variables('factoryId'), '/datasets/Product')]",
+				"[concat(variables('factoryId'), '/datasets/Product_json')]",
+				"[concat(variables('factoryId'), '/datasets/Currency')]",
+				"[concat(variables('factoryId'), '/datasets/Currency_jsons')]",
+				"[concat(variables('factoryId'), '/datasets/ProductSubcategory_oltp')]",
+				"[concat(variables('factoryId'), '/datasets/ProductSubCategory_Json')]",
+				"[concat(variables('factoryId'), '/datasets/ProductDescription_oltp')]",
+				"[concat(variables('factoryId'), '/datasets/ProductDescription_json')]",
+				"[concat(variables('factoryId'), '/datasets/ProductModelDescription_oltp')]",
+				"[concat(variables('factoryId'), '/datasets/ProductModelDescription_json')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ppl_IncrementalLoad')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "df_Update_SalesOrderHeader",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "df_SalesOrderHeader_1000",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_SalesHeader",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "df_SalesOrderHeader_1000",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_Load_SalesOrder_Header_json",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"SalesHeader1000": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "df_Sales_Detail_1000",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_SalesOrderDetail",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SalesDetailSource": {},
+									"SalesDetailTarget": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "df_Update_SalesDetail",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "df_Sales_Detail_1000",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_SalesDetail_Update",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SaleDetailSource": {},
+									"SalesDetailTarget": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/df_SalesHeader')]",
+				"[concat(variables('factoryId'), '/dataflows/df_Load_SalesOrder_Header_json')]",
+				"[concat(variables('factoryId'), '/dataflows/df_SalesOrderDetail')]",
+				"[concat(variables('factoryId'), '/dataflows/df_SalesDetail_Update')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ppl_LoadStaging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_Customer_Staging",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_SalesDetail",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['CustomerID']"
+										},
+										"sink": {
+											"name": "CustomerID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['PersonID']"
+										},
+										"sink": {
+											"name": "PersonID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['StoreID']"
+										},
+										"sink": {
+											"name": "StoreID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['TerritoryID']"
+										},
+										"sink": {
+											"name": "TerritoryID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['AccountNumber']"
+										},
+										"sink": {
+											"name": "AccountNumber",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['rowguid']"
+										},
+										"sink": {
+											"name": "rowguid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ModifiedDate']"
+										},
+										"sink": {
+											"name": "ModifiedDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Read_Flag']"
+										},
+										"sink": {
+											"name": "Read_Flag",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Last_Modified_Date']"
+										},
+										"sink": {
+											"name": "Last_Modified_Date",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Customer_All",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Customer_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy_Product",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_Customer_Staging",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['ProductID']"
+										},
+										"sink": {
+											"name": "ProductID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Name']"
+										},
+										"sink": {
+											"name": "Name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ProductNumber']"
+										},
+										"sink": {
+											"name": "ProductNumber",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['MakeFlag']"
+										},
+										"sink": {
+											"name": "MakeFlag",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['FinishedGoodsFlag']"
+										},
+										"sink": {
+											"name": "FinishedGoodsFlag",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Color']"
+										},
+										"sink": {
+											"name": "Color",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SafetyStockLevel']"
+										},
+										"sink": {
+											"name": "SafetyStockLevel",
+											"type": "Int16"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ReorderPoint']"
+										},
+										"sink": {
+											"name": "ReorderPoint",
+											"type": "Int16"
+										}
+									},
+									{
+										"source": {
+											"path": "$['StandardCost']"
+										},
+										"sink": {
+											"name": "StandardCost",
+											"type": "Decimal"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ListPrice']"
+										},
+										"sink": {
+											"name": "ListPrice",
+											"type": "Decimal"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Size']"
+										},
+										"sink": {
+											"name": "Size",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SizeUnitMeasureCode']"
+										},
+										"sink": {
+											"name": "SizeUnitMeasureCode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['WeightUnitMeasureCode']"
+										},
+										"sink": {
+											"name": "WeightUnitMeasureCode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Weight']"
+										},
+										"sink": {
+											"name": "Weight",
+											"type": "Decimal"
+										}
+									},
+									{
+										"source": {
+											"path": "$['DaysToManufacture']"
+										},
+										"sink": {
+											"name": "DaysToManufacture",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ProductLine']"
+										},
+										"sink": {
+											"name": "ProductLine",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Class']"
+										},
+										"sink": {
+											"name": "Class",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Style']"
+										},
+										"sink": {
+											"name": "Style",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ProductSubcategoryID']"
+										},
+										"sink": {
+											"name": "ProductSubcategoryID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ProductModelID']"
+										},
+										"sink": {
+											"name": "ProductModelID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SellStartDate']"
+										},
+										"sink": {
+											"name": "SellStartDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SellEndDate']"
+										},
+										"sink": {
+											"name": "SellEndDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['DiscontinuedDate']"
+										},
+										"sink": {
+											"name": "DiscontinuedDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['rowguid']"
+										},
+										"sink": {
+											"name": "rowguid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ModifiedDate']"
+										},
+										"sink": {
+											"name": "ModifiedDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Read_Flag']"
+										},
+										"sink": {
+											"name": "Read_Flag",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Last_Modified_Date']"
+										},
+										"sink": {
+											"name": "Last_Modified_Date",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Product_json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Product_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy_ProductCategory",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_Product",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['ProductCategoryID']"
+										},
+										"sink": {
+											"name": "ProductCategoryID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Name']"
+										},
+										"sink": {
+											"name": "Name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['rowguid']"
+										},
+										"sink": {
+											"name": "rowguid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ModifiedDate']"
+										},
+										"sink": {
+											"name": "ModifiedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductCategory_Json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductCategory_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy_Currency",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_Address",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "CurrencyCode",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CurrencyCode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Name",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "ModifiedDate",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "ModifiedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Currency",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Currency_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy_SalesHeader",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_Currency",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['SalesOrderID']"
+										},
+										"sink": {
+											"name": "SalesOrderID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['RevisionNumber']"
+										},
+										"sink": {
+											"name": "RevisionNumber",
+											"type": "Byte"
+										}
+									},
+									{
+										"source": {
+											"path": "$['OrderDate']"
+										},
+										"sink": {
+											"name": "OrderDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['DueDate']"
+										},
+										"sink": {
+											"name": "DueDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ShipDate']"
+										},
+										"sink": {
+											"name": "ShipDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Status']"
+										},
+										"sink": {
+											"name": "Status",
+											"type": "Byte"
+										}
+									},
+									{
+										"source": {
+											"path": "$['OnlineOrderFlag']"
+										},
+										"sink": {
+											"name": "OnlineOrderFlag",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SalesOrderNumber']"
+										},
+										"sink": {
+											"name": "SalesOrderNumber",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['PurchaseOrderNumber']"
+										},
+										"sink": {
+											"name": "PurchaseOrderNumber",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['AccountNumber']"
+										},
+										"sink": {
+											"name": "AccountNumber",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CustomerID']"
+										},
+										"sink": {
+											"name": "CustomerID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SalesPersonID']"
+										},
+										"sink": {
+											"name": "SalesPersonID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['TerritoryID']"
+										},
+										"sink": {
+											"name": "TerritoryID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['BillToAddressID']"
+										},
+										"sink": {
+											"name": "BillToAddressID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ShipToAddressID']"
+										},
+										"sink": {
+											"name": "ShipToAddressID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ShipMethodID']"
+										},
+										"sink": {
+											"name": "ShipMethodID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CreditCardID']"
+										},
+										"sink": {
+											"name": "CreditCardID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CreditCardApprovalCode']"
+										},
+										"sink": {
+											"name": "CreditCardApprovalCode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['SubTotal']"
+										},
+										"sink": {
+											"name": "SubTotal",
+											"type": "Decimal"
+										}
+									},
+									{
+										"source": {
+											"path": "$['TaxAmt']"
+										},
+										"sink": {
+											"name": "TaxAmt",
+											"type": "Decimal"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Freight']"
+										},
+										"sink": {
+											"name": "Freight",
+											"type": "Decimal"
+										}
+									},
+									{
+										"source": {
+											"path": "$['TotalDue']"
+										},
+										"sink": {
+											"name": "TotalDue",
+											"type": "Decimal"
+										}
+									},
+									{
+										"source": {
+											"path": "$['rowguid']"
+										},
+										"sink": {
+											"name": "rowguid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Read_Flag']"
+										},
+										"sink": {
+											"name": "Read_Flag",
+											"type": "Boolean"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Last_Modified_Date']"
+										},
+										"sink": {
+											"name": "Last_Modified_Date",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['CurrencyRateID']"
+										},
+										"sink": {
+											"name": "CurrencyRateID",
+											"type": "Int32"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SalesOrderHeader_100",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "SalesHeader_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy_SalesDetail",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_SalesHeader",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "SalesDetail_1000",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "SalesDetail_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy_Address",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy ProductModel",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['AddressID']"
+										},
+										"sink": {
+											"name": "AddressID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['AddressLine1']"
+										},
+										"sink": {
+											"name": "AddressLine1",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['AddressLine2']"
+										},
+										"sink": {
+											"name": "AddressLine2",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['City']"
+										},
+										"sink": {
+											"name": "City",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['StateProvinceID']"
+										},
+										"sink": {
+											"name": "StateProvinceID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['PostalCode']"
+										},
+										"sink": {
+											"name": "PostalCode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['rowguid']"
+										},
+										"sink": {
+											"name": "rowguid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ModifiedDate']"
+										},
+										"sink": {
+											"name": "ModifiedDate",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "Address_All2",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Address_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy ProductModel",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "\ntruncate table [dbo].[Address]\ntruncate table [dbo].[Currency]\ntruncate table [dbo].[Customer]\ntruncate table [dbo].[Product]\ntruncate table [dbo].[ProductCategory]\ntruncate table [dbo].[ProductModel]\ntruncate table [dbo].[SalesOrderDetail]\ntruncate table [dbo].[SalesOrderHeader]\ntruncate table [dbo].[ProductSubcategory]\n",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['ProductModelID']"
+										},
+										"sink": {
+											"name": "ProductModelID",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Name']"
+										},
+										"sink": {
+											"name": "Name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['rowguid']"
+										},
+										"sink": {
+											"name": "rowguid",
+											"type": "Guid"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ModifiedDate']"
+										},
+										"sink": {
+											"name": "ModifiedDate",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Read_Flag']"
+										},
+										"sink": {
+											"name": "Read_Flag_",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['Last_Modified_Date']"
+										},
+										"sink": {
+											"name": "Last_Modified_Date",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductModel_json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductModel_Staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Copy ProductSubCategory",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Copy_ProductCategory",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink"
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ProductSubCategory_Json",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProductSubCategory_staging",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Customer_All')]",
+				"[concat(variables('factoryId'), '/datasets/Customer_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/Product_json')]",
+				"[concat(variables('factoryId'), '/datasets/Product_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/ProductCategory_Json')]",
+				"[concat(variables('factoryId'), '/datasets/ProductCategory_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/Currency')]",
+				"[concat(variables('factoryId'), '/datasets/Currency_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/SalesOrderHeader_100')]",
+				"[concat(variables('factoryId'), '/datasets/SalesHeader_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/SalesDetail_1000')]",
+				"[concat(variables('factoryId'), '/datasets/SalesDetail_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/Address_All2')]",
+				"[concat(variables('factoryId'), '/datasets/Address_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/ProductModel_json')]",
+				"[concat(variables('factoryId'), '/datasets/ProductModel_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/ProductSubCategory_Json')]",
+				"[concat(variables('factoryId'), '/datasets/ProductSubCategory_staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ppl_Load_Dimensions')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "dataflow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DimProduct",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"ProductSource": {},
+									"dimProductSource": {},
+									"sink1": {},
+									"sink2": {},
+									"sink3": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DimProduct')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ppl_SCD2')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "dataflow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dimProduct_Pragmatic",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SourceData": {},
+									"ExistingRecords": {},
+									"InsertTarget": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dimProduct_Pragmatic')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Address_All')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Address_json.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Address_All2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Address_json.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"AddressID": {
+							"type": "integer"
+						},
+						"AddressLine1": {
+							"type": "string"
+						},
+						"AddressLine2": {
+							"type": "null"
+						},
+						"City": {
+							"type": "string"
+						},
+						"StateProvinceID": {
+							"type": "integer"
+						},
+						"PostalCode": {
+							"type": "string"
+						},
+						"SpatialLocation": {
+							"type": "null"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Address_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "AddressID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "AddressLine1",
+						"type": "nvarchar"
+					},
+					{
+						"name": "AddressLine2",
+						"type": "nvarchar"
+					},
+					{
+						"name": "City",
+						"type": "nvarchar"
+					},
+					{
+						"name": "StateProvinceID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PostalCode",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Address"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Address_oltp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "AddressID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "AddressLine1",
+						"type": "nvarchar"
+					},
+					{
+						"name": "AddressLine2",
+						"type": "nvarchar"
+					},
+					{
+						"name": "City",
+						"type": "nvarchar"
+					},
+					{
+						"name": "StateProvinceID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PostalCode",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SpatialLocation",
+						"type": "AdventureWorks2016CTP3.sys.geography"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Person",
+					"table": "Address"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Currency')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CurrencyCode",
+						"type": "nchar"
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "bit"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Sales",
+					"table": "Currency"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Currency_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CurrencyCode",
+						"type": "nchar"
+					},
+					{
+						"name": "Name",
+						"type": "nchar"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag_",
+						"type": "nchar"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Currency"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Currency_jsons')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Sales.Currency.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"CurrencyCode": {
+							"type": "string"
+						},
+						"Name": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						},
+						"Read_Flag": {
+							"type": "null"
+						},
+						"Last_Modified_Date": {
+							"type": "null"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_All')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Sales.Customer.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"CustomerID": {
+							"type": "integer"
+						},
+						"PersonID": {
+							"type": "null"
+						},
+						"StoreID": {
+							"type": "integer"
+						},
+						"TerritoryID": {
+							"type": "integer"
+						},
+						"AccountNumber": {
+							"type": "string"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CustomerID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PersonID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "StoreID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "TerritoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "AccountNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "nchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Customer"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Customer_oltp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CustomerID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PersonID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "StoreID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "TerritoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "AccountNumber",
+						"type": "varchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Sales",
+					"table": "Customer"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EmpJson')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Employees.json",
+						"folderPath": "input",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"id": {
+							"type": "string"
+						},
+						"name": {
+							"type": "string"
+						},
+						"skills": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						},
+						"Address": {
+							"type": "object",
+							"properties": {
+								"state": {
+									"type": "string"
+								},
+								"country": {
+									"type": "string"
+								},
+								"zipcode": {
+									"type": "string"
+								}
+							}
+						},
+						"Contact": {
+							"type": "object",
+							"properties": {
+								"Phone": {
+									"type": "string"
+								},
+								"email": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Person')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "BusinessEntityID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PersonType",
+						"type": "nchar"
+					},
+					{
+						"name": "NameStyle",
+						"type": "bit"
+					},
+					{
+						"name": "Title",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FirstName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "MiddleName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "LastName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "Suffix",
+						"type": "nvarchar"
+					},
+					{
+						"name": "EmailPromotion",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "AdditionalContactInfo",
+						"type": "xml"
+					},
+					{
+						"name": "Demographics",
+						"type": "xml"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Person",
+					"table": "Person"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProdCategory')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductCategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "bit"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Production",
+					"table": "ProductCategory"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Product')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ProductNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "MakeFlag",
+						"type": "bit"
+					},
+					{
+						"name": "FinishedGoodsFlag",
+						"type": "bit"
+					},
+					{
+						"name": "Color",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SafetyStockLevel",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "ReorderPoint",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "StandardCost",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "ListPrice",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Size",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SizeUnitMeasureCode",
+						"type": "nchar"
+					},
+					{
+						"name": "WeightUnitMeasureCode",
+						"type": "nchar"
+					},
+					{
+						"name": "Weight",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					},
+					{
+						"name": "DaysToManufacture",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductLine",
+						"type": "nchar"
+					},
+					{
+						"name": "Class",
+						"type": "nchar"
+					},
+					{
+						"name": "Style",
+						"type": "nchar"
+					},
+					{
+						"name": "ProductSubcategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductModelID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SellStartDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "SellEndDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "DiscontinuedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "bit"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Production",
+					"table": "Product"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductCategory')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductCategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "bit"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Production",
+					"table": "ProductCategory"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductCategory_Json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Production.ProductCategory.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"ProductCategoryID": {
+							"type": "integer"
+						},
+						"Name": {
+							"type": "string"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						},
+						"Read_Flag": {
+							"type": "null"
+						},
+						"Last_Modified_Date": {
+							"type": "null"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductCategory_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductCategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag_",
+						"type": "nchar"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "ProductCategory"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductDescription_json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Production.ProductDescription.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"ProductDescriptionID": {
+							"type": "integer"
+						},
+						"Description": {
+							"type": "string"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductDescription_oltp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductDescriptionID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Description",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Production",
+					"table": "ProductDescription"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductModel')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductModelID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CatalogDescription",
+						"type": "xml"
+					},
+					{
+						"name": "Instructions",
+						"type": "xml"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "bit"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Production",
+					"table": "ProductModel"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductModelDescription_json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Production.ProductModelProductDescriptionCulture.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"ProductModelID": {
+							"type": "integer"
+						},
+						"ProductDescriptionID": {
+							"type": "integer"
+						},
+						"CultureID": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductModelDescription_oltp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductModelID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductDescriptionID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CultureID",
+						"type": "nchar"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Production",
+					"table": "ProductModelProductDescriptionCulture"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductModel_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductModelID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nchar"
+					},
+					{
+						"name": "CatalogDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "Instructions",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag_",
+						"type": "nchar"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "ProductModel"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductModel_json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Production.ProductModel.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"ProductModelID": {
+							"type": "integer"
+						},
+						"Name": {
+							"type": "string"
+						},
+						"CatalogDescription": {
+							"type": "null"
+						},
+						"Instructions": {
+							"type": "string"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						},
+						"Read_Flag": {
+							"type": "null"
+						},
+						"Last_Modified_Date": {
+							"type": "null"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductSubCategory_Json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Production.ProductSubcategory.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"ProductSubcategoryID": {
+							"type": "integer"
+						},
+						"ProductCategoryID": {
+							"type": "integer"
+						},
+						"Name": {
+							"type": "string"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductSubCategory_staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductSubcategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductCategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "ProductSubcategory"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProductSubcategory_oltp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductSubcategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductCategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Production",
+					"table": "ProductSubcategory"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Product_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ProductNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "MakeFlag",
+						"type": "bit"
+					},
+					{
+						"name": "FinishedGoodsFlag",
+						"type": "bit"
+					},
+					{
+						"name": "Color",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SafetyStockLevel",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "ReorderPoint",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "StandardCost",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "ListPrice",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Size",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SizeUnitMeasureCode",
+						"type": "nchar"
+					},
+					{
+						"name": "WeightUnitMeasureCode",
+						"type": "nchar"
+					},
+					{
+						"name": "Weight",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					},
+					{
+						"name": "DaysToManufacture",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductLine",
+						"type": "nchar"
+					},
+					{
+						"name": "Class",
+						"type": "nchar"
+					},
+					{
+						"name": "Style",
+						"type": "nchar"
+					},
+					{
+						"name": "ProductSubcategoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductModelID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SellStartDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "SellEndDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "DiscontinuedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "nchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Product"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Product_json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Production.Product.json",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"ProductID": {
+							"type": "integer"
+						},
+						"Name": {
+							"type": "string"
+						},
+						"ProductNumber": {
+							"type": "string"
+						},
+						"MakeFlag": {
+							"type": "boolean"
+						},
+						"FinishedGoodsFlag": {
+							"type": "boolean"
+						},
+						"Color": {
+							"type": "string"
+						},
+						"SafetyStockLevel": {
+							"type": "integer"
+						},
+						"ReorderPoint": {
+							"type": "integer"
+						},
+						"StandardCost": {
+							"type": "number"
+						},
+						"ListPrice": {
+							"type": "number"
+						},
+						"Size": {
+							"type": "null"
+						},
+						"SizeUnitMeasureCode": {
+							"type": "null"
+						},
+						"WeightUnitMeasureCode": {
+							"type": "null"
+						},
+						"Weight": {
+							"type": "null"
+						},
+						"DaysToManufacture": {
+							"type": "integer"
+						},
+						"ProductLine": {
+							"type": "null"
+						},
+						"Class": {
+							"type": "string"
+						},
+						"Style": {
+							"type": "null"
+						},
+						"ProductSubcategoryID": {
+							"type": "null"
+						},
+						"ProductModelID": {
+							"type": "null"
+						},
+						"SellStartDate": {
+							"type": "string"
+						},
+						"SellEndDate": {
+							"type": "null"
+						},
+						"DiscontinuedDate": {
+							"type": "null"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						},
+						"Read_Flag": {
+							"type": "null"
+						},
+						"Last_Modified_Date": {
+							"type": "null"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesDetail_1000')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "SalesDetail_1000",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"SalesOrderID": {
+							"type": "integer"
+						},
+						"SalesOrderDetailID": {
+							"type": "integer"
+						},
+						"CarrierTrackingNumber": {
+							"type": "string"
+						},
+						"OrderQty": {
+							"type": "integer"
+						},
+						"ProductID": {
+							"type": "integer"
+						},
+						"SpecialOfferID": {
+							"type": "integer"
+						},
+						"UnitPrice": {
+							"type": "number"
+						},
+						"UnitPriceDiscount": {
+							"type": "number"
+						},
+						"LineTotal": {
+							"type": "number"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"ModifiedDate": {
+							"type": "string"
+						},
+						"Last_Modified_Date": {
+							"type": "string"
+						},
+						"Read_Flag": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesDetail_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "SalesOrderID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SalesOrderDetailID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CarrierTrackingNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "OrderQty",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "ProductID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SpecialOfferID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "UnitPrice",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "UnitPriceDiscount",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "LineTotal",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "nchar"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "SalesOrderDetail"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesHeader_Staging')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Staging",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "STAGING"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "SalesOrderID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "RevisionNumber",
+						"type": "tinyint",
+						"precision": 3
+					},
+					{
+						"name": "OrderDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "DueDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "ShipDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Status",
+						"type": "tinyint",
+						"precision": 3
+					},
+					{
+						"name": "OnlineOrderFlag",
+						"type": "bit"
+					},
+					{
+						"name": "SalesOrderNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "PurchaseOrderNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "AccountNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CustomerID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SalesPersonID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "TerritoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "BillToAddressID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ShipToAddressID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ShipMethodID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CreditCardID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CreditCardApprovalCode",
+						"type": "varchar"
+					},
+					{
+						"name": "CurrencyRateID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SubTotal",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "TaxAmt",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Freight",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "TotalDue",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Comment",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "nchar"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "SalesOrderHeader"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Staging')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesOrderDetail')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "SalesOrderID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SalesOrderDetailID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CarrierTrackingNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "OrderQty",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "ProductID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SpecialOfferID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "UnitPrice",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "UnitPriceDiscount",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "LineTotal",
+						"type": "decimal",
+						"precision": 38,
+						"scale": 6
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "bit"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Sales",
+					"table": "SalesOrderDetail"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesOrderHeader')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "OLTP"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "SalesOrderID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "RevisionNumber",
+						"type": "tinyint",
+						"precision": 3
+					},
+					{
+						"name": "OrderDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "DueDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "ShipDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Status",
+						"type": "tinyint",
+						"precision": 3
+					},
+					{
+						"name": "OnlineOrderFlag",
+						"type": "bit"
+					},
+					{
+						"name": "SalesOrderNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "PurchaseOrderNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "AccountNumber",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CustomerID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SalesPersonID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "TerritoryID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "BillToAddressID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ShipToAddressID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ShipMethodID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CreditCardID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CreditCardApprovalCode",
+						"type": "varchar"
+					},
+					{
+						"name": "CurrencyRateID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "SubTotal",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "TaxAmt",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Freight",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "TotalDue",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Comment",
+						"type": "nvarchar"
+					},
+					{
+						"name": "rowguid",
+						"type": "uniqueidentifier"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Read_Flag",
+						"type": "bit"
+					},
+					{
+						"name": "Last_Modified_Date",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "Sales",
+					"table": "SalesOrderHeader"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesOrderHeader_100')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "SalesHeader_1000",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"SalesOrderID": {
+							"type": "string"
+						},
+						"RevisionNumber": {
+							"type": "string"
+						},
+						"OrderDate": {
+							"type": "string"
+						},
+						"DueDate": {
+							"type": "string"
+						},
+						"ShipDate": {
+							"type": "string"
+						},
+						"Status": {
+							"type": "string"
+						},
+						"OnlineOrderFlag": {
+							"type": "boolean"
+						},
+						"SalesOrderNumber": {
+							"type": "string"
+						},
+						"PurchaseOrderNumber": {
+							"type": "string"
+						},
+						"AccountNumber": {
+							"type": "string"
+						},
+						"CustomerID": {
+							"type": "string"
+						},
+						"SalesPersonID": {
+							"type": "string"
+						},
+						"TerritoryID": {
+							"type": "string"
+						},
+						"BillToAddressID": {
+							"type": "string"
+						},
+						"ShipToAddressID": {
+							"type": "string"
+						},
+						"ShipMethodID": {
+							"type": "string"
+						},
+						"CreditCardID": {
+							"type": "string"
+						},
+						"CreditCardApprovalCode": {
+							"type": "string"
+						},
+						"SubTotal": {
+							"type": "number"
+						},
+						"TaxAmt": {
+							"type": "number"
+						},
+						"Freight": {
+							"type": "number"
+						},
+						"TotalDue": {
+							"type": "number"
+						},
+						"rowguid": {
+							"type": "string"
+						},
+						"Read_Flag": {
+							"type": "string"
+						},
+						"Last_Modified_Date": {
+							"type": "string"
+						},
+						"CurrencyRateID": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dimProduct')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_Datawarehouse",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ProductKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductAlternateKey",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ProductSubcategoryKey",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "WeightUnitMeasureCode",
+						"type": "nchar"
+					},
+					{
+						"name": "SizeUnitMeasureCode",
+						"type": "nchar"
+					},
+					{
+						"name": "EnglishProductName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SpanishProductName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FrenchProductName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "StandardCost",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "FinishedGoodsFlag",
+						"type": "bit"
+					},
+					{
+						"name": "Color",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SafetyStockLevel",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "ReorderPoint",
+						"type": "smallint",
+						"precision": 5
+					},
+					{
+						"name": "ListPrice",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Size",
+						"type": "nvarchar"
+					},
+					{
+						"name": "SizeRange",
+						"type": "nvarchar"
+					},
+					{
+						"name": "Weight",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "DaysToManufacture",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ProductLine",
+						"type": "nchar"
+					},
+					{
+						"name": "DealerPrice",
+						"type": "money",
+						"precision": 19,
+						"scale": 4
+					},
+					{
+						"name": "Class",
+						"type": "nchar"
+					},
+					{
+						"name": "Style",
+						"type": "nchar"
+					},
+					{
+						"name": "ModelName",
+						"type": "nvarchar"
+					},
+					{
+						"name": "LargePhoto",
+						"type": "varbinary"
+					},
+					{
+						"name": "EnglishDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FrenchDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ChineseDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ArabicDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "HebrewDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ThaiDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "GermanDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "JapaneseDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "TurkishDescription",
+						"type": "nvarchar"
+					},
+					{
+						"name": "StartDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "EndDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Status",
+						"type": "nvarchar"
+					},
+					{
+						"name": "iscurrent",
+						"type": "bit"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "DimProduct"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_Datawarehouse')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_AdvantureSQLTable')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_AdventureWorks_Azure",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					},
+					"schemaName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().schemaName",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_AdventureWorks_Azure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_InputDep')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "department.csv",
+						"folderPath": "input",
+						"container": "datalake"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "depid",
+						"type": "String"
+					},
+					{
+						"name": "depname",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_InputEmp')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "employees.csv",
+						"folderPath": "input",
+						"container": "datalake"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "empid",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "country",
+						"type": "String"
+					},
+					{
+						"name": "department",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_Output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"folderPath": "output",
+						"container": "datalake"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_OutputFolderJson')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": "output",
+						"container": "datalake"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_empJSON')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Employees.json",
+						"folderPath": "input",
+						"container": "datalake"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"id": {
+							"type": "string"
+						},
+						"name": {
+							"type": "string"
+						},
+						"skills": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						},
+						"Address": {
+							"type": "object",
+							"properties": {
+								"state": {
+									"type": "string"
+								},
+								"country": {
+									"type": "string"
+								},
+								"zipcode": {
+									"type": "string"
+								}
+							}
+						},
+						"Contact": {
+							"type": "object",
+							"properties": {
+								"Phone": {
+									"type": "string"
+								},
+								"email": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_empwindow')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "employees.csv",
+						"folderPath": "input",
+						"container": "datalake"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "empid",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "country",
+						"type": "String"
+					},
+					{
+						"name": "department",
+						"type": "String"
+					},
+					{
+						"name": "salary",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_inputFolder')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": "input",
+						"container": "datalake"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_salesData')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "BLOB_Storage",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "USASales.csv",
+						"folderPath": "input",
+						"container": "datalake"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "saleid",
+						"type": "String"
+					},
+					{
+						"name": "saleItem",
+						"type": "String"
+					},
+					{
+						"name": "quantity",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/BLOB_Storage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/BLOB_Storage')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('BLOB_Storage_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_AdventureWorks_Azure')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_AdventureWorks_Azure_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_AdventureWorks_Staging')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_AdventureWorks_Staging_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_Datawarehouse')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_Datawarehouse_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/TriggerA')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "ppl_CopyTables",
+						"type": "PipelineReference"
+					},
+					"parameters": {}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Minute",
+					"interval": 5,
+					"startTime": "2020-06-12T08:44:00Z",
+					"endTime": "2020-06-13T01:00:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 50,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": [
+						{
+							"type": "SelfDependencyTumblingWindowTriggerReference",
+							"offset": "-00:05:00"
+						}
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/ppl_CopyTables')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tgr_Daily_Overnight')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "ppl_LoadStaging",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "ppl_IncrementalLoad",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 3,
+						"startTime": "2020-06-11T22:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/ppl_LoadStaging')]",
+				"[concat(variables('factoryId'), '/pipelines/ppl_IncrementalLoad')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimProduct')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Product_Staging",
+								"type": "DatasetReference"
+							},
+							"name": "ProductSource"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "dimProductSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "sink2"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "sink3"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "NewRows"
+						},
+						{
+							"name": "CheckforChanges"
+						},
+						{
+							"name": "SetAttrUpdate"
+						},
+						{
+							"name": "SetAtInactive"
+						},
+						{
+							"name": "InactiveFields"
+						},
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as integer,\n\t\t{[FrenchProductName} as integer,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as short,\n\t\tReorderPoint as short,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\t{[SizeRange} as integer,\n\t\tWeight as decimal(8,2),\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\t{[DealerPrice} as integer,\n\t\tClass as string,\n\t\tStyle as string,\n\t\t{[ModelName} as integer,\n\t\t{[LargePhoto} as integer,\n\t\t{[EnglishDescription} as integer,\n\t\t{[FrenchDescription} as integer,\n\t\t{[ChineseDescription} as integer,\n\t\t{[ArabicDescription} as integer,\n\t\t{[HebrewDescription} as integer,\n\t\t{[ThaiDescription} as integer,\n\t\t{[GermanDescription} as integer,\n\t\t{[JapaneseDescription} as integer,\n\t\t{[TurkishDescription} as integer,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\t{[Status} as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: '\\nSELECT \\n      [ProductNumber]as [ProductAlternateKey]\\n      ,PS.[ProductSubcategoryID] as [ProductSubcategoryKey]\\n      ,[WeightUnitMeasureCode] as [WeightUnitMeasureCode]\\n      ,[SizeUnitMeasureCode] as [SizeUnitMeasureCode]\\n      ,P.[Name] as [EnglishProductName]\\n      ,NULL as [SpanishProductName]\\n      ,NULL as [[FrenchProductName]\\n      ,[StandardCost]\\n      , [FinishedGoodsFlag] \\n\t        ,[Color] as [Color]\\n      ,[SafetyStockLevel]as [SafetyStockLevel]\\n      ,[ReorderPoint] as [ReorderPoint]\\n      ,[ListPrice] as [ListPrice]\\n      ,[Size]\\n      ,NULL as [[SizeRange]\\n      ,[Weight]\\n      ,[DaysToManufacture]\\n      ,[ProductLine]\\n      ,NULL as [[DealerPrice]\\n      ,[Class]\\n      ,[Style]\\n      ,NULL as [[ModelName]\\n      ,NULL as [[LargePhoto]\\n      ,NULL as [[EnglishDescription]\\n      ,NULL as [[FrenchDescription]\\n      ,NULL as [[ChineseDescription]\\n      ,NULL as [[ArabicDescription]\\n      ,NULL as [[HebrewDescription]\\n      ,NULL as [[ThaiDescription]\\n      ,NULL as [[GermanDescription]\\n      ,NULL as [[JapaneseDescription]\\n      ,NULL as [[TurkishDescription]\\n      ,[SellStartDate] as [StartDate]\\n      ,[SellEndDate] as [EndDate]\\n      ,NULL as [[Status]\\n  FROM [dbo].[Product] P\\n  LEFT join [dbo].[ProductSubcategory] PS ON P.[ProductSubcategoryID]=PS.[ProductSubcategoryID]',\n\tformat: 'query') ~> ProductSource\nsource(output(\n\t\tProductKey as integer,\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as string,\n\t\tFrenchProductName as string,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as integer,\n\t\tReorderPoint as integer,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tSizeRange as string,\n\t\tWeight as double,\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\tDealerPrice as decimal(19,4),\n\t\tClass as string,\n\t\tStyle as string,\n\t\tModelName as string,\n\t\tLargePhoto as binary,\n\t\tEnglishDescription as string,\n\t\tFrenchDescription as string,\n\t\tChineseDescription as string,\n\t\tArabicDescription as string,\n\t\tHebrewDescription as string,\n\t\tThaiDescription as string,\n\t\tGermanDescription as string,\n\t\tJapaneseDescription as string,\n\t\tTurkishDescription as string,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\tStatus as string,\n\t\tiscurrent as boolean\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> dimProductSource\nProductSource, dimProductSource lookup(ProductSource@ProductAlternateKey == dimProductSource@ProductAlternateKey,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 split(iscurrent,\n\tdisjoint: false) ~> NewRows@(ExistingRows, NewRows)\nNewRows@ExistingRows, dimProductSource exists(NewRows@ExistingRows@ProductAlternateKey==dimProductSource@ProductAlternateKey && (NewRows@ExistingRows@Color!=dimProductSource@Color ||NewRows@ExistingRows@Weight!=dimProductSource@Weight),\n\tnegate:false,\n\tbroadcast: 'auto')~> CheckforChanges\nCheckforChanges derive(iscurrent = true()) ~> SetAttrUpdate\nCheckforChanges derive(iscurrent = false()) ~> SetAtInactive\nSetAtInactive select(mapColumn(\n\t\tProductAlternateKey = NewRows@NewRows@ProductAlternateKey,\n\t\tColor = NewRows@NewRows@Color,\n\t\tWeight = NewRows@NewRows@Weight,\n\t\teach(match(true()))\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> InactiveFields\nInactiveFields alterRow(updateIf(true())) ~> AlterRow1\nNewRows@NewRows sink(input(\n\t\tProductKey as integer,\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as string,\n\t\tFrenchProductName as string,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as integer,\n\t\tReorderPoint as integer,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tSizeRange as string,\n\t\tWeight as double,\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\tDealerPrice as decimal(19,4),\n\t\tClass as string,\n\t\tStyle as string,\n\t\tModelName as string,\n\t\tLargePhoto as binary,\n\t\tEnglishDescription as string,\n\t\tFrenchDescription as string,\n\t\tChineseDescription as string,\n\t\tArabicDescription as string,\n\t\tHebrewDescription as string,\n\t\tThaiDescription as string,\n\t\tGermanDescription as string,\n\t\tJapaneseDescription as string,\n\t\tTurkishDescription as string,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\tStatus as string,\n\t\tiscurrent as boolean\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1\nSetAttrUpdate sink(input(\n\t\tProductKey as integer,\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as string,\n\t\tFrenchProductName as string,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as integer,\n\t\tReorderPoint as integer,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tSizeRange as string,\n\t\tWeight as double,\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\tDealerPrice as decimal(19,4),\n\t\tClass as string,\n\t\tStyle as string,\n\t\tModelName as string,\n\t\tLargePhoto as binary,\n\t\tEnglishDescription as string,\n\t\tFrenchDescription as string,\n\t\tChineseDescription as string,\n\t\tArabicDescription as string,\n\t\tHebrewDescription as string,\n\t\tThaiDescription as string,\n\t\tGermanDescription as string,\n\t\tJapaneseDescription as string,\n\t\tTurkishDescription as string,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\tStatus as string,\n\t\tiscurrent as boolean\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink2\nAlterRow1 sink(input(\n\t\tProductKey as integer,\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as string,\n\t\tFrenchProductName as string,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as integer,\n\t\tReorderPoint as integer,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tSizeRange as string,\n\t\tWeight as double,\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\tDealerPrice as decimal(19,4),\n\t\tClass as string,\n\t\tStyle as string,\n\t\tModelName as string,\n\t\tLargePhoto as binary,\n\t\tEnglishDescription as string,\n\t\tFrenchDescription as string,\n\t\tChineseDescription as string,\n\t\tArabicDescription as string,\n\t\tHebrewDescription as string,\n\t\tThaiDescription as string,\n\t\tGermanDescription as string,\n\t\tJapaneseDescription as string,\n\t\tTurkishDescription as string,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\tStatus as string,\n\t\tiscurrent as boolean\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:true,\n\tupsertable:false,\n\tkeys:['ProductAlternateKey'],\n\tskipKeyWrites:true,\n\tformat: 'table',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink3"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Product_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/dimProduct')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SurrogateDF')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_empwindow",
+								"type": "DatasetReference"
+							},
+							"name": "emp"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "SurrogateKey1"
+						}
+					],
+					"script": "source(output(\n\t\tempid as string,\n\t\tname as string,\n\t\tcountry as string,\n\t\tdepartment as string,\n\t\tsalary as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> emp\nemp keyGenerate(output(SurrKey as long),\n\tstartAt: 1L) ~> SurrogateKey1\nSurrogateKey1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['surrogateKEY.CSV'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_empwindow')]",
+				"[concat(variables('factoryId'), '/datasets/ds_Output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/WindowDF')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_empwindow",
+								"type": "DatasetReference"
+							},
+							"name": "emp"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Window1"
+						}
+					],
+					"script": "source(output(\n\t\tempid as string,\n\t\tname as string,\n\t\tcountry as string,\n\t\tdepartment as string,\n\t\tsalary as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> emp\nemp window(over(department),\n\tdesc(salary, true),\n\tRanks = rank()) ~> Window1\nWindow1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['window.csv'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_empwindow')]",
+				"[concat(variables('factoryId'), '/datasets/ds_Output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_Load_SalesOrder_Header_json')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "SalesOrderHeader",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "SalesOrderHeader_100",
+								"type": "DatasetReference"
+							},
+							"name": "SalesHeader1000"
+						}
+					],
+					"transformations": [],
+					"script": "source(output(\n\t\tSalesOrderID as integer,\n\t\tRevisionNumber as integer,\n\t\tOrderDate as timestamp,\n\t\tDueDate as timestamp,\n\t\tShipDate as timestamp,\n\t\tStatus as integer,\n\t\tOnlineOrderFlag as boolean,\n\t\tSalesOrderNumber as string,\n\t\tPurchaseOrderNumber as string,\n\t\tAccountNumber as string,\n\t\tCustomerID as integer,\n\t\tSalesPersonID as integer,\n\t\tTerritoryID as integer,\n\t\tBillToAddressID as integer,\n\t\tShipToAddressID as integer,\n\t\tShipMethodID as integer,\n\t\tCreditCardID as integer,\n\t\tCreditCardApprovalCode as string,\n\t\tCurrencyRateID as integer,\n\t\tSubTotal as decimal(19,4),\n\t\tTaxAmt as decimal(19,4),\n\t\tFreight as decimal(19,4),\n\t\tTotalDue as decimal(19,4),\n\t\tComment as string,\n\t\trowguid as string,\n\t\tRead_Flag as string,\n\t\tLast_Modified_Date as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: 'SELECT TOP (1000) [SalesOrderID]\\n      ,[RevisionNumber]\\n      ,[OrderDate]\\n      ,[DueDate]\\n      ,[ShipDate]\\n      ,[Status]\\n      ,[OnlineOrderFlag]\\n      ,cast([SalesOrderNumber] as nvarchar(50)) as SalesOrderNumber\\n      ,[PurchaseOrderNumber]\\n      ,[AccountNumber]\\n      ,[CustomerID]\\n      ,[SalesPersonID]\\n      ,[TerritoryID]\\n      ,[BillToAddressID]\\n      ,[ShipToAddressID]\\n      ,[ShipMethodID]\\n      ,[CreditCardID]\\n      ,[CreditCardApprovalCode]\\n      ,[CurrencyRateID]\\n      ,[SubTotal]\\n      ,[TaxAmt]\\n      ,[Freight]\\n      ,[TotalDue]\\n      ,[Comment]\\n      ,[rowguid]\\n      ,\\'1\\' as [Read_Flag]\\n      ,getdate() as [Last_Modified_Date]\\n  FROM [Sales].[SalesOrderHeader] where Read_Flag IS NULL',\n\tformat: 'query') ~> source1\nsource1 sink(input(\n\t\tSalesOrderID as string,\n\t\tRevisionNumber as string,\n\t\tOrderDate as string,\n\t\tDueDate as string,\n\t\tShipDate as string,\n\t\tStatus as string,\n\t\tOnlineOrderFlag as boolean,\n\t\tSalesOrderNumber as string,\n\t\tPurchaseOrderNumber as string,\n\t\tAccountNumber as string,\n\t\tCustomerID as string,\n\t\tSalesPersonID as string,\n\t\tTerritoryID as string,\n\t\tBillToAddressID as string,\n\t\tShipToAddressID as string,\n\t\tShipMethodID as string,\n\t\tCreditCardID as string,\n\t\tCreditCardApprovalCode as string,\n\t\tSubTotal as double,\n\t\tTaxAmt as double,\n\t\tFreight as double,\n\t\tTotalDue as double,\n\t\trowguid as string,\n\t\tRead_Flag as string,\n\t\tLast_Modified_Date as string,\n\t\tCurrencyRateID as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['SalesHeader_Incremental'],\n\tmapColumn(\n\t\tSalesOrderID,\n\t\tRevisionNumber,\n\t\tOrderDate,\n\t\tDueDate,\n\t\tShipDate,\n\t\tStatus,\n\t\tOnlineOrderFlag,\n\t\tSalesOrderNumber,\n\t\tPurchaseOrderNumber,\n\t\tAccountNumber,\n\t\tCustomerID,\n\t\tSalesPersonID,\n\t\tTerritoryID,\n\t\tBillToAddressID,\n\t\tShipToAddressID,\n\t\tShipMethodID,\n\t\tCreditCardID,\n\t\tCreditCardApprovalCode,\n\t\tCurrencyRateID,\n\t\tSubTotal,\n\t\tTaxAmt,\n\t\tFreight,\n\t\tTotalDue,\n\t\tComment,\n\t\trowguid,\n\t\tRead_Flag,\n\t\tLast_Modified_Date\n\t),\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SalesHeader1000"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SalesOrderHeader')]",
+				"[concat(variables('factoryId'), '/datasets/SalesOrderHeader_100')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_SalesDetail_Update')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "SalesOrderDetail",
+								"type": "DatasetReference"
+							},
+							"name": "SaleDetailSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "SalesOrderDetail",
+								"type": "DatasetReference"
+							},
+							"name": "SalesDetailTarget"
+						}
+					],
+					"transformations": [
+						{
+							"name": "UpdateSalesDetail"
+						}
+					],
+					"script": "source(output(\n\t\tSalesOrderID as integer,\n\t\tSalesOrderDetailID as integer,\n\t\tCarrierTrackingNumber as string,\n\t\tOrderQty as short,\n\t\tProductID as integer,\n\t\tSpecialOfferID as integer,\n\t\tUnitPrice as decimal(19,4),\n\t\tUnitPriceDiscount as decimal(19,4),\n\t\tLineTotal as decimal(38,6),\n\t\trowguid as string,\n\t\tModifiedDate as timestamp,\n\t\tLast_Modified_Date as timestamp,\n\t\tRead_Flag as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: '\\nSELECT TOP (1000) [SalesOrderID]\\n      ,[SalesOrderDetailID]\\n      ,[CarrierTrackingNumber]\\n      ,[OrderQty]\\n      ,[ProductID]\\n      ,[SpecialOfferID]\\n      ,[UnitPrice]\\n      ,[UnitPriceDiscount]\\n      ,[LineTotal]\\n      ,[rowguid]\\n      , [ModifiedDate]\\n\t  ,getdate() as Last_Modified_Date\\n      ,\\'1\\' as [Read_Flag]\\n  FROM [Sales].[SalesOrderDetail] where Read_Flag IS NULL OR Read_Flag=0',\n\tformat: 'query') ~> SaleDetailSource\nSaleDetailSource alterRow(updateIf(Read_Flag=='1')) ~> UpdateSalesDetail\nUpdateSalesDetail sink(input(\n\t\tSalesOrderID as integer,\n\t\tSalesOrderDetailID as integer,\n\t\tCarrierTrackingNumber as string,\n\t\tOrderQty as integer,\n\t\tProductID as integer,\n\t\tSpecialOfferID as integer,\n\t\tUnitPrice as decimal(19,4),\n\t\tUnitPriceDiscount as decimal(19,4),\n\t\tLineTotal as decimal(38,6),\n\t\trowguid as string,\n\t\tModifiedDate as timestamp,\n\t\tRead_Flag as boolean,\n\t\tLast_Modified_Date as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:true,\n\tupsertable:false,\n\tkeys:['SalesOrderID'],\n\tskipKeyWrites:true,\n\tformat: 'table',\n\tmapColumn(\n\t\tSalesOrderID,\n\t\tLast_Modified_Date,\n\t\tRead_Flag\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SalesDetailTarget"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SalesOrderDetail')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_SalesHeader')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "SalesOrderHeader",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "SalesOrderHeader",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\tSalesOrderID as integer,\n\t\tRevisionNumber as integer,\n\t\tOrderDate as timestamp,\n\t\tDueDate as timestamp,\n\t\tShipDate as timestamp,\n\t\tStatus as integer,\n\t\tOnlineOrderFlag as boolean,\n\t\tSalesOrderNumber as string,\n\t\tPurchaseOrderNumber as string,\n\t\tAccountNumber as string,\n\t\tCustomerID as integer,\n\t\tSalesPersonID as integer,\n\t\tTerritoryID as integer,\n\t\tBillToAddressID as integer,\n\t\tShipToAddressID as integer,\n\t\tShipMethodID as integer,\n\t\tCreditCardID as integer,\n\t\tCreditCardApprovalCode as string,\n\t\tCurrencyRateID as integer,\n\t\tSubTotal as decimal(19,4),\n\t\tTaxAmt as decimal(19,4),\n\t\tFreight as decimal(19,4),\n\t\tTotalDue as decimal(19,4),\n\t\tComment as string,\n\t\trowguid as string,\n\t\tRead_Flag as string,\n\t\tLast_Modified_Date as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: 'SELECT TOP (1000) [SalesOrderID]\\n      ,[RevisionNumber]\\n      ,[OrderDate]\\n      ,[DueDate]\\n      ,[ShipDate]\\n      ,[Status]\\n      ,[OnlineOrderFlag]\\n      ,[SalesOrderNumber]\\n      ,[PurchaseOrderNumber]\\n      ,[AccountNumber]\\n      ,[CustomerID]\\n      ,[SalesPersonID]\\n      ,[TerritoryID]\\n      ,[BillToAddressID]\\n      ,[ShipToAddressID]\\n      ,[ShipMethodID]\\n      ,[CreditCardID]\\n      ,[CreditCardApprovalCode]\\n      ,[CurrencyRateID]\\n      ,[SubTotal]\\n      ,[TaxAmt]\\n      ,[Freight]\\n      ,[TotalDue]\\n      ,[Comment]\\n      ,[rowguid]\\n      ,\\'1\\' as [Read_Flag]\\n      ,getdate() as [Last_Modified_Date]\\n  FROM [Sales].[SalesOrderHeader] where Read_Flag IS NULL OR Read_Flag=0',\n\tformat: 'query') ~> source1\nsource1 alterRow(updateIf(Read_Flag=='1')) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tSalesOrderID as integer,\n\t\tRevisionNumber as integer,\n\t\tOrderDate as timestamp,\n\t\tDueDate as timestamp,\n\t\tShipDate as timestamp,\n\t\tStatus as integer,\n\t\tOnlineOrderFlag as boolean,\n\t\tSalesOrderNumber as string,\n\t\tPurchaseOrderNumber as string,\n\t\tAccountNumber as string,\n\t\tCustomerID as integer,\n\t\tSalesPersonID as integer,\n\t\tTerritoryID as integer,\n\t\tBillToAddressID as integer,\n\t\tShipToAddressID as integer,\n\t\tShipMethodID as integer,\n\t\tCreditCardID as integer,\n\t\tCreditCardApprovalCode as string,\n\t\tCurrencyRateID as integer,\n\t\tSubTotal as decimal(19,4),\n\t\tTaxAmt as decimal(19,4),\n\t\tFreight as decimal(19,4),\n\t\tTotalDue as decimal(19,4),\n\t\tComment as string,\n\t\trowguid as string,\n\t\tModifiedDate as timestamp,\n\t\tRead_Flag as boolean,\n\t\tLast_Modified_Date as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:true,\n\tupsertable:false,\n\tkeys:['SalesOrderID'],\n\tskipKeyWrites:true,\n\tformat: 'table',\n\tmapColumn(\n\t\tSalesOrderID,\n\t\tRead_Flag,\n\t\tLast_Modified_Date\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SalesOrderHeader')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_SalesOrderDetail')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "SalesOrderDetail",
+								"type": "DatasetReference"
+							},
+							"name": "SalesDetailSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "SalesDetail_1000",
+								"type": "DatasetReference"
+							},
+							"name": "SalesDetailTarget"
+						}
+					],
+					"transformations": [],
+					"script": "source(output(\n\t\tSalesOrderID as integer,\n\t\tSalesOrderDetailID as integer,\n\t\tCarrierTrackingNumber as string,\n\t\tOrderQty as short,\n\t\tProductID as integer,\n\t\tSpecialOfferID as integer,\n\t\tUnitPrice as decimal(19,4),\n\t\tUnitPriceDiscount as decimal(19,4),\n\t\tLineTotal as decimal(38,6),\n\t\trowguid as string,\n\t\tModifiedDate as timestamp,\n\t\tLast_Modified_Date as timestamp,\n\t\tRead_Flag as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: '\\nSELECT TOP (1000) [SalesOrderID]\\n      ,[SalesOrderDetailID]\\n      ,[CarrierTrackingNumber]\\n      ,[OrderQty]\\n      ,[ProductID]\\n      ,[SpecialOfferID]\\n      ,[UnitPrice]\\n      ,[UnitPriceDiscount]\\n      ,[LineTotal]\\n      ,[rowguid]\\n      , [ModifiedDate]\\n\t  ,getdate() as Last_Modified_Date\\n      ,\\'1\\' as [Read_Flag]\\n  FROM [Sales].[SalesOrderDetail] where Read_Flag IS NULL',\n\tformat: 'query') ~> SalesDetailSource\nSalesDetailSource sink(input(\n\t\tSalesOrderID as string,\n\t\tSalesOrderDetailID as string,\n\t\tCarrierTrackingNumber as string,\n\t\tOrderQty as string,\n\t\tProductID as string,\n\t\tSpecialOfferID as string,\n\t\tUnitPrice as double,\n\t\tUnitPriceDiscount as double,\n\t\tLineTotal as double,\n\t\trowguid as string,\n\t\tModifiedDate as string,\n\t\tLast_Modified_Date as string,\n\t\tRead_Flag as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['SalesDetail_Incremental'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SalesDetailTarget"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SalesOrderDetail')]",
+				"[concat(variables('factoryId'), '/datasets/SalesDetail_1000')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_ditinct')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_InputEmp",
+								"type": "DatasetReference"
+							},
+							"name": "emp"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Aggregate1"
+						}
+					],
+					"script": "source(output(\n\t\tempid as string,\n\t\tname as string,\n\t\tcountry as string,\n\t\tdepartment as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> emp\nemp aggregate(groupBy(department),\n\teach(match(name!='department'), $$ = first($$))) ~> Aggregate1\nAggregate1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['distrow.csv'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_InputEmp')]",
+				"[concat(variables('factoryId'), '/datasets/ds_Output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dimProduct_Pragmatic')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Product_Staging",
+								"type": "DatasetReference"
+							},
+							"name": "SourceData"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "ExistingRecords"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "InsertTarget"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "ExistingRecordsz"
+						},
+						{
+							"name": "SourceFileHash"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "ExistingRecordszHash"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "ConditionalSplit"
+						},
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "AlterRow1"
+						},
+						{
+							"name": "UpdateDerivedColumn"
+						},
+						{
+							"name": "AlterRow2"
+						}
+					],
+					"script": "source(output(\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as integer,\n\t\t{[FrenchProductName} as integer,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as short,\n\t\tReorderPoint as short,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\t{[SizeRange} as integer,\n\t\tWeight as decimal(8,2),\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\t{[DealerPrice} as integer,\n\t\tClass as string,\n\t\tStyle as string,\n\t\t{[ModelName} as integer,\n\t\t{[LargePhoto} as integer,\n\t\t{[EnglishDescription} as integer,\n\t\t{[FrenchDescription} as integer,\n\t\t{[ChineseDescription} as integer,\n\t\t{[ArabicDescription} as integer,\n\t\t{[HebrewDescription} as integer,\n\t\t{[ThaiDescription} as integer,\n\t\t{[GermanDescription} as integer,\n\t\t{[JapaneseDescription} as integer,\n\t\t{[TurkishDescription} as integer,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\t{[Status} as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: '\\nSELECT \\n      P.[ProductNumber] as [ProductAlternateKey]\\n      ,PS.[ProductSubcategoryID] as [ProductSubcategoryKey]\\n      ,[WeightUnitMeasureCode] as [WeightUnitMeasureCode]\\n      ,[SizeUnitMeasureCode] as [SizeUnitMeasureCode]\\n      ,P.[Name] as [EnglishProductName]\\n      ,NULL as [SpanishProductName]\\n      ,NULL as [[FrenchProductName]\\n      ,[StandardCost]\\n      , [FinishedGoodsFlag] \\n\t        ,[Color] as [Color]\\n      ,[SafetyStockLevel]as [SafetyStockLevel]\\n      ,[ReorderPoint] as [ReorderPoint]\\n      ,[ListPrice] as [ListPrice]\\n      ,[Size]\\n      ,NULL as [[SizeRange]\\n      ,[Weight]\\n      ,[DaysToManufacture]\\n      ,[ProductLine]\\n      ,NULL as [[DealerPrice]\\n      ,[Class]\\n      ,[Style]\\n      ,NULL as [[ModelName]\\n      ,NULL as [[LargePhoto]\\n      ,NULL as [[EnglishDescription]\\n      ,NULL as [[FrenchDescription]\\n      ,NULL as [[ChineseDescription]\\n      ,NULL as [[ArabicDescription]\\n      ,NULL as [[HebrewDescription]\\n      ,NULL as [[ThaiDescription]\\n      ,NULL as [[GermanDescription]\\n      ,NULL as [[JapaneseDescription]\\n      ,NULL as [[TurkishDescription]\\n      ,[SellStartDate] as [StartDate]\\n      ,[SellEndDate] as [EndDate]\\n      ,NULL as [[Status]\\n  FROM [dbo].[Product] P\\n  LEFT join [dbo].[ProductSubcategory] PS ON P.[ProductSubcategoryID]=PS.[ProductSubcategoryID]',\n\tformat: 'query') ~> SourceData\nsource(output(\n\t\tProductKey as integer,\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tColor as string,\n\t\tSize as string,\n\t\tWeight as double,\n\t\tStatus as string,\n\t\tisCurrent as boolean\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: 'SELECT [ProductKey]\\n      ,[ProductAlternateKey]\\n      ,[ProductSubcategoryKey]\\n      ,[Color]\\n      ,[Size]\\n      ,[Weight]\\n      ,[Status]\\n\t  ,isCurrent\\n  FROM [AW_Data_Warehouse].[dbo].[DimProduct]',\n\tformat: 'query') ~> ExistingRecords\nExistingRecords select(mapColumn(\n\t\tExisting_ProductKey = ProductKey,\n\t\tExisting_ProductAlternateKey = ProductAlternateKey,\n\t\tExisting_ProductSubcategoryKey = ProductSubcategoryKey,\n\t\tExisting_Color = Color,\n\t\tExisting_Size = Size,\n\t\tExisting_Weight = Weight,\n\t\tExisting_Status = Status,\n\t\tExisting_isCurrent = isCurrent\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> ExistingRecordsz\nSourceData derive(SourceType1RecordHash = sha1(256,ProductAlternateKey,Weight,Color)) ~> SourceFileHash\nSourceFileHash, ExistingRecordszHash exists(SourceType1RecordHash == ExistingRecordsHash,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists1\nExistingRecordsz derive(ExistingRecordsHash = sha1(256,Existing_ProductAlternateKey,Existing_Weight,Existing_Color)) ~> ExistingRecordszHash\nExists1, ExistingRecordszHash lookup(ProductAlternateKey == Existing_ProductAlternateKey,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 split(isNull(Existing_ProductKey),\n\tdisjoint: false) ~> ConditionalSplit@(NewItems, UpdatedItems)\nConditionalSplit@NewItems derive(isCurrent = '1') ~> DerivedColumn1\nDerivedColumn1 alterRow(insertIf(1==1)) ~> AlterRow1\nConditionalSplit@UpdatedItems derive(Last_Modified_Date = currentDate()) ~> UpdateDerivedColumn\nUpdateDerivedColumn alterRow(updateIf(1==1)) ~> AlterRow2\nAlterRow1 sink(input(\n\t\tProductKey as integer,\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as string,\n\t\tFrenchProductName as string,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as integer,\n\t\tReorderPoint as integer,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tSizeRange as string,\n\t\tWeight as double,\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\tDealerPrice as decimal(19,4),\n\t\tClass as string,\n\t\tStyle as string,\n\t\tModelName as string,\n\t\tLargePhoto as binary,\n\t\tEnglishDescription as string,\n\t\tFrenchDescription as string,\n\t\tChineseDescription as string,\n\t\tArabicDescription as string,\n\t\tHebrewDescription as string,\n\t\tThaiDescription as string,\n\t\tGermanDescription as string,\n\t\tJapaneseDescription as string,\n\t\tTurkishDescription as string,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\tStatus as string,\n\t\tiscurrent as boolean\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tProductAlternateKey,\n\t\tProductSubcategoryKey,\n\t\tWeightUnitMeasureCode,\n\t\tSizeUnitMeasureCode,\n\t\tEnglishProductName,\n\t\tSpanishProductName,\n\t\tFrenchProductName = {[FrenchProductName},\n\t\tStandardCost,\n\t\tFinishedGoodsFlag,\n\t\tColor,\n\t\tSafetyStockLevel,\n\t\tReorderPoint,\n\t\tListPrice,\n\t\tSize,\n\t\tSizeRange = {[SizeRange},\n\t\tWeight,\n\t\tDaysToManufacture,\n\t\tProductLine,\n\t\tDealerPrice = {[DealerPrice},\n\t\tClass,\n\t\tStyle,\n\t\tModelName = {[ModelName},\n\t\tLargePhoto = {[LargePhoto},\n\t\tEnglishDescription = {[EnglishDescription},\n\t\tFrenchDescription = {[FrenchDescription},\n\t\tChineseDescription = {[ChineseDescription},\n\t\tArabicDescription = {[ArabicDescription},\n\t\tHebrewDescription = {[HebrewDescription},\n\t\tThaiDescription = {[ThaiDescription},\n\t\tGermanDescription = {[GermanDescription},\n\t\tJapaneseDescription = {[JapaneseDescription},\n\t\tTurkishDescription = {[TurkishDescription},\n\t\tStartDate,\n\t\tEndDate,\n\t\tStatus = {[Status},\n\t\tiscurrent = isCurrent\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> InsertTarget\nAlterRow2 sink(input(\n\t\tProductKey as integer,\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as string,\n\t\tFrenchProductName as string,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as integer,\n\t\tReorderPoint as integer,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tSizeRange as string,\n\t\tWeight as double,\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\tDealerPrice as decimal(19,4),\n\t\tClass as string,\n\t\tStyle as string,\n\t\tModelName as string,\n\t\tLargePhoto as binary,\n\t\tEnglishDescription as string,\n\t\tFrenchDescription as string,\n\t\tChineseDescription as string,\n\t\tArabicDescription as string,\n\t\tHebrewDescription as string,\n\t\tThaiDescription as string,\n\t\tGermanDescription as string,\n\t\tJapaneseDescription as string,\n\t\tTurkishDescription as string,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\tStatus as string,\n\t\tiscurrent as boolean\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:true,\n\tupsertable:false,\n\tkeys:['ProductAlternateKey'],\n\tskipKeyWrites:true,\n\tformat: 'table',\n\tmapColumn(\n\t\tColor,\n\t\tSizeRange = Size,\n\t\tDaysToManufacture,\n\t\tProductAlternateKey\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Product_Staging')]",
+				"[concat(variables('factoryId'), '/datasets/dimProduct')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/flattenDF')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_empJSON",
+								"type": "DatasetReference"
+							},
+							"name": "empJson"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Flatten1"
+						}
+					],
+					"script": "source(output(\n\t\tid as string,\n\t\tname as string,\n\t\tskills as string[],\n\t\tAddress as (state as string, country as string, zipcode as string),\n\t\tContact as (Phone as string, email as string)\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tsingleDocument: true) ~> empJson\nempJson foldDown(unroll(skills),\n\tmapColumn(\n\t\tid,\n\t\tname,\n\t\tskills,\n\t\tstate = Address.state,\n\t\tContact = Contact.Phone\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> Flatten1\nFlatten1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['faltten.csv'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_empJSON')]",
+				"[concat(variables('factoryId'), '/datasets/ds_Output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/lookupDF')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_InputDep",
+								"type": "DatasetReference"
+							},
+							"name": "dep"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_InputEmp",
+								"type": "DatasetReference"
+							},
+							"name": "emp"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Lookup1"
+						}
+					],
+					"script": "source(output(\n\t\tdepid as string,\n\t\tdepname as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> dep\nsource(output(\n\t\tempid as string,\n\t\tname as string,\n\t\tcountry as string,\n\t\tdepartment as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> emp\ndep, emp lookup(depid == department,\n\tmultiple: true,\n\tbroadcast: 'auto')~> Lookup1\nLookup1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['LookupEmp.csv'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_InputDep')]",
+				"[concat(variables('factoryId'), '/datasets/ds_InputEmp')]",
+				"[concat(variables('factoryId'), '/datasets/ds_Output')]"
+			]
+		}
+	]
+}
