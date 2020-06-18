@@ -1,0 +1,32 @@
+{
+	"name": "df_dimProduct_SCD",
+	"properties": {
+		"description": "Did after Maheers lesson on 18th June",
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Product_Staging",
+						"type": "DatasetReference"
+					},
+					"name": "sourceProduct"
+				},
+				{
+					"dataset": {
+						"referenceName": "dimProduct",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDimProduct"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "LookuponDimProduct"
+				}
+			],
+			"script": "source(output(\n\t\tProductAlternateKey as string,\n\t\tProductSubcategoryKey as integer,\n\t\tWeightUnitMeasureCode as string,\n\t\tSizeUnitMeasureCode as string,\n\t\tEnglishProductName as string,\n\t\tSpanishProductName as integer,\n\t\tFrenchProductName as integer,\n\t\tStandardCost as decimal(19,4),\n\t\tFinishedGoodsFlag as boolean,\n\t\tColor as string,\n\t\tSafetyStockLevel as short,\n\t\tReorderPoint as short,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tSizeRange as integer,\n\t\tWeight as decimal(8,2),\n\t\tDaysToManufacture as integer,\n\t\tProductLine as string,\n\t\tDealerPrice as integer,\n\t\tClass as string,\n\t\tStyle as string,\n\t\tModelName as integer,\n\t\tLargePhoto as integer,\n\t\tEnglishDescription as integer,\n\t\tFrenchDescription as integer,\n\t\tChineseDescription as integer,\n\t\tArabicDescription as integer,\n\t\tHebrewDescription as integer,\n\t\tThaiDescription as integer,\n\t\tGermanDescription as integer,\n\t\tJapaneseDescription as integer,\n\t\tTurkishDescription as integer,\n\t\tStartDate as timestamp,\n\t\tEndDate as timestamp,\n\t\tStatus as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: '\\nSELECT \\n      [ProductNumber]as [ProductAlternateKey]\\n      ,PS.[ProductSubcategoryID] as [ProductSubcategoryKey]\\n      ,[WeightUnitMeasureCode] as [WeightUnitMeasureCode]\\n      ,[SizeUnitMeasureCode] as [SizeUnitMeasureCode]\\n      ,P.[Name] as [EnglishProductName]\\n      ,NULL as [SpanishProductName]\\n      ,NULL as [FrenchProductName]\\n      ,[StandardCost]\\n      , [FinishedGoodsFlag] \\n\t        ,[Color] as [Color]\\n      ,[SafetyStockLevel]as [SafetyStockLevel]\\n      ,[ReorderPoint] as [ReorderPoint]\\n      ,[ListPrice] as [ListPrice]\\n      ,[Size]\\n      ,NULL as [SizeRange]\\n      ,[Weight]\\n      ,[DaysToManufacture]\\n      ,[ProductLine]\\n      ,NULL as [DealerPrice]\\n      ,[Class]\\n      ,[Style]\\n      ,NULL as [ModelName]\\n      ,NULL as [LargePhoto]\\n      ,NULL as [EnglishDescription]\\n      ,NULL as [FrenchDescription]\\n      ,NULL as [ChineseDescription]\\n      ,NULL as [ArabicDescription]\\n      ,NULL as [HebrewDescription]\\n      ,NULL as [ThaiDescription]\\n      ,NULL as [GermanDescription]\\n      ,NULL as [JapaneseDescription]\\n      ,NULL as [TurkishDescription]\\n      ,[SellStartDate] as [StartDate]\\n      ,[SellEndDate] as [EndDate]\\n      ,NULL as [Status]\\n  FROM [dbo].[Product] P\\n  LEFT join [dbo].[ProductSubcategory] PS ON P.[ProductSubcategoryID]=PS.[ProductSubcategoryID]',\n\tformat: 'query') ~> sourceProduct\nsource(output(\n\t\tProductAlternateKey as string,\n\t\tColor as string,\n\t\tListPrice as decimal(19,4),\n\t\tSize as string,\n\t\tWeight as double,\n\t\tEndDate as timestamp,\n\t\tStatus as string,\n\t\tiscurrent as boolean,\n\t\tLast_Modified_Date as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tquery: '\\nSELECT \\n      [ProductAlternateKey]\\n\t   ,[Color]\\n      ,[ListPrice]\\n      ,[Size]\\n      ,[Weight]\\n\t  ,[EndDate]\\n      ,[Status]\\n      ,[iscurrent]\\n      ,[Last_Modified_Date]\\n  FROM [dbo].[DimProduct]',\n\tformat: 'query') ~> sourceDimProduct\nsourceProduct, sourceDimProduct lookup(sourceProduct@ProductAlternateKey == sourceDimProduct@ProductAlternateKey,\n\tmultiple: true,\n\tbroadcast: 'auto')~> LookuponDimProduct"
+		}
+	}
+}
