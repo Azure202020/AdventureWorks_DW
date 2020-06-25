@@ -1,0 +1,18 @@
+{
+	"name": "output_json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "BLOB_Storage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"folderPath": "output_json",
+				"container": "datalake"
+			}
+		}
+	}
+}
