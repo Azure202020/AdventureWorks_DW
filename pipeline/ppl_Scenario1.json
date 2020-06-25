@@ -24,7 +24,8 @@
 						"itemName"
 					],
 					"storeSettings": {
-						"type": "AzureBlobStorageReadSettings"
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true
 					},
 					"formatSettings": {
 						"type": "DelimitedTextReadSettings"
@@ -64,7 +65,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@variables('FileExtention').value=='csv'",
+									"value": "@contains(@variables('FileExtention'),'csv')",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
@@ -217,7 +218,10 @@
 							"userProperties": [],
 							"typeProperties": {
 								"variableName": "FileExtention",
-								"value": "@split(item().name,'.')[1]"
+								"value": {
+									"value": "@split(item().name,'.')[1]",
+									"type": "Expression"
+								}
 							}
 						}
 					]
