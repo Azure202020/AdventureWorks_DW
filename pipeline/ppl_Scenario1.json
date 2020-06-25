@@ -116,11 +116,6 @@
 				}
 			}
 		],
-		"variables": {
-			"folderLocation": {
-				"type": "String"
-			}
-		},
 		"annotations": []
 	}
 }
