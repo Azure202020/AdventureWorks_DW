@@ -65,7 +65,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"expression": {
-									"value": "@contains(@variables('FileExtention'),'csv')",
+									"value": "@contains(variables('FileExtention'),'csv')",
 									"type": "Expression"
 								},
 								"ifFalseActivities": [
