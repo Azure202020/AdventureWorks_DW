@@ -83,13 +83,13 @@
 										"userProperties": [],
 										"typeProperties": {
 											"source": {
-												"type": "DelimitedTextSource",
+												"type": "JsonSource",
 												"storeSettings": {
 													"type": "AzureBlobStorageReadSettings",
 													"recursive": true
 												},
 												"formatSettings": {
-													"type": "DelimitedTextReadSettings"
+													"type": "JsonReadSettings"
 												}
 											},
 											"sink": {
@@ -106,14 +106,8 @@
 										},
 										"inputs": [
 											{
-												"referenceName": "AllInputFiles",
-												"type": "DatasetReference",
-												"parameters": {
-													"fileName": {
-														"value": "@concat(variables('FileName'),'.',variables('FileExtention'))",
-														"type": "Expression"
-													}
-												}
+												"referenceName": "json_All",
+												"type": "DatasetReference"
 											}
 										],
 										"outputs": [
