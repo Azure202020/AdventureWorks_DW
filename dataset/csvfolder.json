@@ -10,8 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"folderPath": "csvfolder",
-				"container": "datalake"
+				"container": "csvoutput"
 			},
 			"columnDelimiter": ",",
 			"escapeChar": "\\",
