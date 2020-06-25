@@ -171,7 +171,7 @@
 												"type": "DatasetReference",
 												"parameters": {
 													"fileName": {
-														"value": "@concat(variables('FileName'),variables('FileExtention'))",
+														"value": "@concat(variables('FileName'),'.',variables('FileExtention'))",
 														"type": "Expression"
 													}
 												}
