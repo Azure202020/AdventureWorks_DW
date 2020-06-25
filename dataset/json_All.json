@@ -10,7 +10,8 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
-				"container": "jsonoutput"
+				"folderPath": "input",
+				"container": "datalake"
 			}
 		}
 	}
