@@ -108,7 +108,13 @@
 										"inputs": [
 											{
 												"referenceName": "json_All",
-												"type": "DatasetReference"
+												"type": "DatasetReference",
+												"parameters": {
+													"fileName": {
+														"value": "@concat(variables('FileName'),'.',variables('FileExtention'))",
+														"type": "Expression"
+													}
+												}
 											}
 										],
 										"outputs": [
