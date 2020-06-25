@@ -39,7 +39,16 @@
 								"secureOutput": false,
 								"secureInput": false
 							},
-							"userProperties": [],
+							"userProperties": [
+								{
+									"name": "Source",
+									"value": "@concat(variables('Schema'),'.',variables('Table'))"
+								},
+								{
+									"name": "Sink",
+									"value": "@concat('datalake/output/',variables('Table'),'.json')"
+								}
+							],
 							"typeProperties": {
 								"source": {
 									"type": "AzureSqlSource",

@@ -1,24 +1,27 @@
 {
-	"name": "ds_inputFolder",
+	"name": "json_All",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "BLOB_Storage",
 			"type": "LinkedServiceReference"
 		},
+		"parameters": {
+			"fileName": {
+				"type": "string"
+			}
+		},
 		"annotations": [],
-		"type": "DelimitedText",
+		"type": "Json",
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().fileName",
+					"type": "Expression"
+				},
 				"folderPath": "input",
 				"container": "datalake"
-			},
-			"columnDelimiter": ",",
-			"escapeChar": "\\",
-			"firstRowAsHeader": true,
-			"quoteChar": "\""
-		},
-		"schema": []
-	},
-	"type": "Microsoft.DataFactory/factories/datasets"
+			}
+		}
+	}
 }
