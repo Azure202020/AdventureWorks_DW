@@ -1,0 +1,230 @@
+{
+	"name": "ppl_copy_csv_json_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "datalakefolder",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "ForEachFile",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata1').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get Metadata2",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "datalakeParameter",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@activity('Get Metadata1').output.childItem",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"itemName",
+									"itemType",
+									"lastModified"
+								],
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "FileName",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Metadata2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ItemName",
+								"value": {
+									"value": "@activity('Get Metadata2').output.ItemName",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "FileType",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "FileName",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ItemType",
+								"value": {
+									"value": "@activity('Get Metadata2').output.ItemType",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "File_LastModifiedDate",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "FileType",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "folderLocation",
+								"value": {
+									"value": "@activity('Get Metadata2').output.ItemName",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "usp_adfMetadataLog",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "File_LastModifiedDate",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_adfMetadataLog]",
+								"storedProcedureParameters": {
+									"adfName": {
+										"value": {
+											"value": "@pipeline().DataFactory",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FolderLocation": {
+										"value": {
+											"value": "@activity('Get Metadata2').output.LastModifiedDate",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"itemName": {
+										"value": {
+											"value": "@activity('Get Metadata2').output.ItemName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"itemType": {
+										"value": {
+											"value": "@activity('Get Metadata2').output.ItemType",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"pipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_AdventureWorks_Staging",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"folderLocation": {
+				"type": "String"
+			},
+			"ItemName": {
+				"type": "String"
+			},
+			"ItemType": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
