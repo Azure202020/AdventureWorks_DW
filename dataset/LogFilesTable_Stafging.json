@@ -1,0 +1,33 @@
+{
+	"name": "LogFilesTable_Stafging",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_AdventureWorks_Staging",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "DataFactoryName",
+				"type": "nchar"
+			},
+			{
+				"name": "PipelineName",
+				"type": "nchar"
+			},
+			{
+				"name": "FileName",
+				"type": "nchar"
+			},
+			{
+				"name": "FileType",
+				"type": "nchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "log_FileMetadata"
+		}
+	}
+}
