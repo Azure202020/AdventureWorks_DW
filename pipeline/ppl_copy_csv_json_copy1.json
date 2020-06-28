@@ -68,7 +68,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"FileName": {
-											"value": "@item()",
+											"value": "@first(item())",
 											"type": "Expression"
 										}
 									}
