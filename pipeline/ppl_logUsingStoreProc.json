@@ -175,6 +175,13 @@
 										},
 										"type": "String"
 									},
+									"ExecutionDuration": {
+										"value": {
+											"value": "@variables('ExecutionTime')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
 									"itemName": {
 										"value": {
 											"value": "@variables('ItemName')",
