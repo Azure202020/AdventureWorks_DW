@@ -1,5 +1,5 @@
 {
-	"name": "ppl_copy_csv_json_copy1",
+	"name": "ppl_logUsingStoreProc",
 	"properties": {
 		"activities": [
 			{
@@ -139,9 +139,9 @@
 							],
 							"userProperties": [],
 							"typeProperties": {
-								"variableName": "folderLocation",
+								"variableName": "LastModifiedDate",
 								"value": {
-									"value": "@activity('Get Metadata2').output.ItemName",
+									"value": "@activity('Get Metadata2').output.LastModified",
 									"type": "Expression"
 								}
 							}
@@ -175,26 +175,26 @@
 										},
 										"type": "String"
 									},
-									"FolderLocation": {
-										"value": {
-											"value": "@activity('Get Metadata2').output.LastModified",
-											"type": "Expression"
-										},
-										"type": "String"
-									},
 									"itemName": {
 										"value": {
-											"value": "@activity('Get Metadata2').output.ItemName",
+											"value": "@variables('ItemName')",
 											"type": "Expression"
 										},
 										"type": "String"
 									},
 									"itemType": {
 										"value": {
-											"value": "@activity('Get Metadata2').output.ItemType",
+											"value": "@variables('ItemType')",
 											"type": "Expression"
 										},
 										"type": "String"
+									},
+									"LastModified": {
+										"value": {
+											"value": "@variables('LastModifiedDate')",
+											"type": "Expression"
+										},
+										"type": "DateTime"
 									},
 									"pipelineName": {
 										"value": {
@@ -215,7 +215,7 @@
 			}
 		],
 		"variables": {
-			"folderLocation": {
+			"LastModifiedDate": {
 				"type": "String"
 			},
 			"ItemName": {
