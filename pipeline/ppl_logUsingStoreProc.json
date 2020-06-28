@@ -221,7 +221,14 @@
 									]
 								}
 							],
-							"userProperties": []
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ExecutionTime",
+								"value": {
+									"value": "@item().executionDuration",
+									"type": "Expression"
+								}
+							}
 						}
 					]
 				}
@@ -235,6 +242,9 @@
 				"type": "String"
 			},
 			"ItemType": {
+				"type": "String"
+			},
+			"ExecutionTime": {
 				"type": "String"
 			}
 		},
