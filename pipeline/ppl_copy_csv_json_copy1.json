@@ -67,7 +67,10 @@
 									"referenceName": "datalakeParameter",
 									"type": "DatasetReference",
 									"parameters": {
-										"FileName": "@activity('Get Metadata1').output.childItems"
+										"FileName": {
+											"value": "@item()",
+											"type": "Expression"
+										}
 									}
 								},
 								"fieldList": [
