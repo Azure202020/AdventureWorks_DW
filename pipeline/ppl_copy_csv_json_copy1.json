@@ -177,7 +177,7 @@
 									},
 									"FolderLocation": {
 										"value": {
-											"value": "@activity('Get Metadata2').output.LastModifiedDate",
+											"value": "@activity('Get Metadata2').output.LastModified",
 											"type": "Expression"
 										},
 										"type": "String"
