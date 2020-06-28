@@ -131,7 +131,7 @@
 							"type": "SetVariable",
 							"dependsOn": [
 								{
-									"activity": "FileType",
+									"activity": "ExecutionTime",
 									"dependencyConditions": [
 										"Succeeded"
 									]
@@ -209,6 +209,19 @@
 								"referenceName": "ls_AdventureWorks_Staging",
 								"type": "LinkedServiceReference"
 							}
+						},
+						{
+							"name": "ExecutionTime",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "FileType",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": []
 						}
 					]
 				}
