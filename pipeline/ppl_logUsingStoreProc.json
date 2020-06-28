@@ -225,7 +225,7 @@
 							"typeProperties": {
 								"variableName": "ExecutionTime",
 								"value": {
-									"value": "@activity('Get Metadata2').output.executionDuration",
+									"value": "@string(activity('Get Metadata2').output.executionDuration)",
 									"type": "Expression"
 								}
 							}
