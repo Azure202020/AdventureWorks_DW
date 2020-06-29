@@ -5,6 +5,10 @@
 		"typeProperties": {
 			"sources": [
 				{
+					"dataset": {
+						"referenceName": "EmpJson",
+						"type": "DatasetReference"
+					},
 					"name": "emp"
 				}
 			],
@@ -22,7 +26,7 @@
 					"name": "Pivot1"
 				}
 			],
-			"script": "source(output(\n\t\tid as string,\n\t\tname as string,\n\t\tgender as string,\n\t\tdep as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> emp\nemp pivot(groupBy(dep),\n\tpivotBy(gender),\n\t{} = count(id),\n\tcolumnNaming: 'Total_$Nabc$V',\n\tlateral: true) ~> Pivot1\nPivot1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['pivit.csv'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+			"script": "source(output(\n\t\tid as string,\n\t\tname as string,\n\t\tskills as string[],\n\t\tAddress as (state as string, country as string, zipcode as string),\n\t\tContact as (Phone as string, email as string)\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> emp\nemp pivot(groupBy(dep),\n\tpivotBy(gender),\n\t{} = count(id),\n\tcolumnNaming: 'Total_$Nabc$V',\n\tlateral: true) ~> Pivot1\nPivot1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tpartitionFileNames:['pivit.csv'],\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
 		}
 	}
 }
