@@ -20,6 +20,7 @@
 						"type": "DatasetReference"
 					},
 					"fieldList": [
+						"childItems",
 						"childItems"
 					],
 					"storeSettings": {
@@ -79,7 +80,8 @@
 									"lastModified"
 								],
 								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings"
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
 								},
 								"formatSettings": {
 									"type": "DelimitedTextReadSettings"
