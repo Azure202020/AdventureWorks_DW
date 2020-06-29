@@ -1,0 +1,262 @@
+{
+	"name": "ppl_logUsingStoreProc",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "datalakefolder",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"childItems",
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "ForEachFile",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata1').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get Metadata2",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "datalakeParameter",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@item().Name",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"itemName",
+									"itemType",
+									"lastModified"
+								],
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "FileName",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Metadata2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ItemName",
+								"value": {
+									"value": "@activity('Get Metadata2').output.ItemName",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "FileType",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "FileName",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ItemType",
+								"value": {
+									"value": "@activity('Get Metadata2').output.ItemType",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "File_LastModifiedDate",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "ExecutionTime",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "LastModifiedDate",
+								"value": {
+									"value": "@activity('Get Metadata2').output.LastModified",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "usp_adfMetadataLog",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "File_LastModifiedDate",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_adfMetadataLog]",
+								"storedProcedureParameters": {
+									"adfName": {
+										"value": {
+											"value": "@pipeline().DataFactory",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ExecutionDuration": {
+										"value": {
+											"value": "@variables('ExecutionTime')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"itemName": {
+										"value": {
+											"value": "@variables('ItemName')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"itemType": {
+										"value": {
+											"value": "@variables('ItemType')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"LastModified": {
+										"value": {
+											"value": "@variables('LastModifiedDate')",
+											"type": "Expression"
+										},
+										"type": "DateTime"
+									},
+									"pipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_AdventureWorks_Staging",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "ExecutionTime",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "FileType",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ExecutionTime",
+								"value": {
+									"value": "@string(activity('Get Metadata2').output.executionDuration)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"LastModifiedDate": {
+				"type": "String"
+			},
+			"ItemName": {
+				"type": "String"
+			},
+			"ItemType": {
+				"type": "String"
+			},
+			"ExecutionTime": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
